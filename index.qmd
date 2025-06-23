@@ -1,0 +1,1899 @@
+---
+title: "ANALYZING PERFORMANCE GAPS BETWEEN DEPARTMENTS"
+subtitle: "Exploratory Data Analysis"
+author: "Ibrahima Fikry Diallo"
+toc: true
+toc-location: left 
+toc-depth: 3
+toc-title: On this page
+format:
+    html:
+      include-after-body: footer.html
+      #css: styles.css
+      df-print: paged
+      code-fold: true
+      #code-tools: true
+      code-link: true
+      smooth-scroll: true
+      code-overflow: wrap
+      code-summary: "Show code"
+      self-contained: true
+   
+      grid: 
+        margin-width: 300px
+        body-width: 900px
+        sidebar-width: 200px 
+execute: 
+  echo: true
+  warning: false
+  message: false
+reference-location: margin
+citation-location: margin
+code-annotations: hover
+title-block-banner: "#151931"
+title-block-banner-color: "#D4A96A" 
+lightbox: true
+theme:
+ light: cosmo
+ dark: darkly
+---
+
+# I. INTRODUCTION
+
+## I.1 Business problem: Unveiling departmental performance gaps
+
+A company aims to analyze and understand performance gaps across its various departments. This involves exploring the relationships between qualitative variables (such as department affiliation and employee satisfaction) and quantitative variables (like performance scores and work hours). The ultimate goal is to identify areas for improvement and foster a more productive and equitable work environment.
+
+## I.2 Project objectives: A Data-driven approach to HR insights
+
+The primary objectives of this analysis are to:
+
+1.  Conduct a thorough Exploratory Data Analysis (EDA) to understand the distributions and characteristics of key employee metrics.
+2.  Investigate potential relationships between employee satisfaction, performance scores, and other relevant variables.
+3.  Present findings in a clear, concise, and visually appealing manner suitable for both technical and non-technical stakeholders.
+4.  Provide data-driven insights that can inform strategic decision-making within the company, ultimately leading to a more productive and equitable work environment.
+
+## I.3 Data Overview: A comprehensive look at Employee Data
+
+The dataset includes 100,000 rows of employee information such as Departments, satisfaction levels, performance scores, hours worked, and more.
+
+<details>
+
+<summary>Click to expand details about the Dataset</summary>
+
+### **Dataset Summary**
+
+This dataset contains 100,000 rows of data capturing key aspects of employee performance, productivity, and demographics in a corporate environment. It includes details related to the employee's job, work habits, education, performance, and satisfaction. The dataset is designed for various purposes such as HR analytics, employee churn prediction, productivity analysis, and performance evaluation.
+
+**Key Variables:**
+
+-   **Employee_ID**: Unique identifier for each employee.
+-   **Department**: The department in which the employee works (e.g., Sales, HR, IT).
+-   **Gender**: Gender of the employee (Male, Female, Other).
+-   **Age**: Employee's age (between 22 and 60).
+-   **Job_Title**: The role held by the employee (e.g., Manager, Analyst, Developer).
+-   **Hire_Date**: The date the employee was hired.
+-   **Years_At_Company**: The number of years the employee has been working for the company.
+-   **Education_Level**: Highest educational qualification (High School, Bachelor, Master, PhD).
+-   **Performance_Score**: Employee's performance rating (1 to 5 scale).
+-   **Monthly_Salary**: The employee's monthly salary in USD, correlated with job title and performance score.
+-   **Work_Hours_Per_Week**: Number of hours worked per week.
+-   **Projects_Handled**: Total number of projects handled by the employee.
+-   **Overtime_Hours**: Total overtime hours worked in the last year.
+-   **Sick_Days**: Number of sick days taken by the employee.
+-   **Remote_Work_Frequency**: Percentage of time worked remotely (0%, 25%, 50%, 75%, 100%).
+-   **Team_Size**: Number of people in the employee's team.
+-   **Training_Hours**: Number of hours spent in training.
+-   **Promotions**: Number of promotions received during their tenure.
+-   **Employee_Satisfaction_Score**: Employee satisfaction rating (1.0 to 5.0 scale).
+-   **Resigned**: Boolean value indicating if the employee has resigned.
+
+The dataset can be accessed at the following link: [Employee Performance Evaluation Dataset](https://www.kaggle.com/datasets/mexwell/employee-performance-and-productivity-data/data "null").
+
+</details>
+
+------------------------------------------------------------------------
+
+# II. EXPLORATORY DATA ANALYSIS (EDA)
+
+:::: column-margin
+::: {.callout-note appearance="minimal" icon="false"}
+Libraries will be loaded progressively as needed to demonstrate their specific utility within each step.
+:::
+::::
+
+## II.1 Loading the Dataset
+
+This section focuses on loading the raw employee performance data and a preliminary inspection.
+
+```{r}
+
+# Load essential data manipulation and visualization libraries
+library(tidyverse) # Includes dplyr for data manipulation and ggplot2 for plotting
+
+# Load the employee dataset 
+df_employee <- read.csv("Extended_Employee_Performance_and_Productivity_Data.csv")
+
+# Display the first few rows of the dataset as an interactive table
+# This helps in understanding the column names and initial data types.
+head(df_employee) 
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+The dataset contains **100,000 individual employee records (rows)** and is described by **20 distinct attributes (columns)**.
+:::
+
+## II.2 Data Structure and Preprocessing
+
+### II.2.1 Data cleaning: Checking for missing values
+
+Before proceeding with detailed analysis, it's crucial to assess the completeness of our dataset by checking for any missing values.
+
+```{r}
+
+# Load the naniar package for missing data visualization
+library(naniar)
+
+# This plot provides a quick overview of which variables, if any, contain missing data.
+gg_miss_var(df_employee) +
+  labs(title = "Missing Values by Variable") +
+  theme_minimal() # Consistent theme for plots
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+A critical finding from this initial phase is the **complete absence of any missing values** across all 20 columns of the dataset.
+
+**Implication:** There is no need for data imputation or handling incomplete observations, which often introduces complexities or potential biases.
+:::
+
+### II.2.2 Variable formatting and type conversion
+
+To ensure accurate analysis and visualization, variables are converted to appropriate data types (factors, numeric, logical, date/time).
+
+```{r}
+
+# Convert nominal categorical variables to factors
+df_employee$Department <- as.factor(df_employee$Department)
+df_employee$Gender <- as.factor(df_employee$Gender)
+df_employee$Job_Title <- as.factor(df_employee$Job_Title)
+
+# Convert ordinal categorical variables to ordered factors
+# Levels are explicitly defined to reflect natural hierarchy.
+df_employee$Education_Level <- factor(df_employee$Education_Level,
+                                      levels = c("High School", "Bachelor", "Master", "PhD"),
+                                      ordered = TRUE)
+
+df_employee$Remote_Work_Frequency <- factor(df_employee$Remote_Work_Frequency,
+                                            levels = c("0", "25", "50", "75", "100"),
+                                            ordered = TRUE)
+
+df_employee$Performance_Score <- factor(df_employee$Performance_Score,
+                                        levels = 1:5,
+                                        ordered = TRUE)
+
+# Convert 'Resigned' to a logical (boolean) type for clearer interpretation in analysis
+df_employee$Resigned <- as.logical(df_employee$Resigned)
+
+# Convert 'Hire_Date' to a proper date/time object for temporal analysis
+df_employee$Hire_Date <- as.POSIXct(df_employee$Hire_Date, format = "%Y-%m-%d %H:%M:%S")
+
+# Ensure all numerical variables are explicitly set as numeric
+numerical_vars <- c("Age", "Years_At_Company", "Monthly_Salary", "Work_Hours_Per_Week",
+                    "Projects_Handled", "Overtime_Hours", "Sick_Days", "Team_Size",
+                    "Training_Hours", "Promotions", "Employee_Satisfaction_Score")
+
+df_employee[numerical_vars] <- lapply(df_employee[numerical_vars], as.numeric)
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+The variables are now appropriately typed in R, which facilitates effective analysis:
+
+-   **Factor** (6 columns): `Department`, `Gender`, `Job_Title`, `Education_Level` (ordered), `Performance_Score` (ordered), `Remote_Work_Frequency` (ordered).
+-   **Logical** (1 column): `Resigned`. This boolean variable, indicating employee turnover, is central to our retention analysis.
+-   **Numeric** (11 columns): `Age`, `Years_At_Company`, `Monthly_Salary`, `Work_Hours_Per_Week`, `Projects_Handled`, `Overtime_Hours`, `Sick_Days`, `Team_Size`, `Training_Hours`, `Promotions`, `Employee_Satisfaction_Score`. These represent quantitative measures.
+-   **POSIXct** (1 column): `Hire_Date`. This timestamp variable is crucial for calculating accurate employee tenure.
+:::
+
+### II.2.3 Key variable insights: A descriptive summary
+
+A detailed summary of each variable type provides a foundational understanding of the employee population and key HR metrics.
+
+```{r}
+
+# Load the skimr package for a compact and visually appealing summary of data frames
+library(skimr)
+
+# Generate a summary report for all variables, excluding the Employee_ID as it's just an identifier.
+skim(df_employee %>% select(-Employee_ID))
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+**Key Observations from the Data Summary:**
+
+-   **Logical Variable (`Resigned`)**: This key variable shows an **overall company resignation rate of 10.01%** (10,010 employees resigned out of 100,000). This baseline rate underscores the importance of our employee retention analysis.
+
+-   **Numerical Variables**:
+
+    -   **`Age`**: Employees range from 22 to 60 years, with an average age of approximately 41 years (SD: 11.24). This suggests a **demographically diverse workforce**.
+    -   **`Years_At_Company`**: The average tenure is around 4.5 years (SD: 2.87), with a maximum tenure of 10 years. This distribution will be crucial for understanding how tenure correlates with resignation risk.
+    -   **`Monthly_Salary`**: Salaries range from approximately \$3,850 to \$9,000, averaging around \$6,400 (SD: 1372.51). This spread indicates **variance in compensation across roles or experience levels.**
+    -   **`Work_Hours_Per_Week`**: The average work week is about 45 hours (SD: 8.94), with most employees working between 30-60 hours.
+    -   **`Overtime_Hours`**: Employees average about 14.5 hours of overtime (SD: 8.66). This is a significant figure that will be explored for its potential impact on performance and satisfaction.
+    -   **`Employee_Satisfaction_Score`**: Scores range from 1 to 5, with an average of 3.00 (SD: 1.15), suggesting a neutral overall satisfaction level which warrants further investigation.
+    -   **`Promotions`**: The average number of promotions is 1 (SD: 0.82), indicating **common career progression** within the company.
+
+-   **Factor Variables**:
+
+    -   **`Department`**: The company has 9 departments, with Marketing, Finance, Operations, and IT being the largest, each comprising roughly 11-12% of the workforce.
+    -   **`Gender`**: The dataset shows a **balanced gender distribution** (approximately 48% Male, 48% Female, and 4% Other).
+    -   **`Job_Title`**: There are 7 distinct job titles, with "Specialist", "Manager", "Technician", and **"Analyst" being the most common**, each representing about 14-15% of roles.
+    -   **`Education_Level`**: **"Bachelor's" degree holders are the largest group (50%)**, followed by "High School" (30%), "Master's" (15%), and "PhD" (5%).
+    -   **`Performance_Score`**: Scores from 1 to 5 are relatively evenly distributed, with each score level representing approximately 20% of the employees. This implies a **normal distribution of performance across the company**.
+    -   **`Remote_Work_Frequency`**: The distribution across the 5 categories (0%, 25%, 50%, 75%, 100%) is also relatively even, providing **ample data to assess the impact of remote work.**
+:::
+
+### II.2.4 Key visualizations: A glimpse into Employee demographics
+
+This section presents initial visualizations to highlight key distributions and patterns within the employee dataset.
+
+::: {.panel-tabset .nav-pills}
+## Employee Counts by Department
+
+This bar chart visualizes the distribution of employees across different departments, highlighting the largest department.
+
+```{r}
+
+# Load ggtext for enhanced text formatting in ggplot2 titles
+library(ggtext)
+
+# Prepare data: Count employees per department, arrange by count, and highlight the largest.
+dept_data <- df_employee %>%
+  count(Department, name = "Count") %>%
+  arrange(desc(Count)) %>%
+  mutate(Highlight = ifelse(Department == Department[1], "Highlight", "Normal"))
+
+# Define consistent color palette
+mck_palette <- c("Highlight" = "#faca80", "Normal" = "#151931")
+text_color <- "#151931"
+subtitle_color <- "gray40"
+caption_color <- "#666666"
+
+# Create the Department Employee Count plot
+dept_plot <- ggplot(dept_data, aes(x = fct_reorder(Department, Count),
+                                  y = Count,
+                                  fill = Highlight)) +
+  # Bars representing employee counts
+  geom_col(width = 0.7) +
+  # Add count labels on the bars
+  geom_text(aes(label = format(Count, big.mark = ",")),
+            hjust = -0.1, # Position labels outside the bars
+            size = 3.5,
+            fontface = "bold",
+            color = text_color) +
+  # Apply custom color scale
+  scale_fill_manual(values = mck_palette) +
+  # Titles and labels using enhanced markdown for aesthetics
+  labs(
+    title = "<span style='font-size:18pt'><span style='color:#faca80'>Marketing</span> is the largest department</span>",
+    subtitle = paste("Contains", format(dept_data$Count[1], big.mark = ","),
+                    "employees | Total:", format(sum(dept_data$Count), big.mark = ",")),
+    x = NULL, # Remove x-axis label
+    y = NULL, # Remove y-axis label
+    caption = "Source: Company HR Data"
+  ) +
+  # Apply a consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = subtitle_color, margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = caption_color, margin = margin(t = 10)),
+    axis.text.y = element_text(color = text_color, size = 10),
+    axis.text.x = element_blank(), # Hide x-axis text
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend as colors are explained in title/subtitle
+    plot.margin = margin(20, 60, 20, 20) # Adjust plot margins for better layout
+  ) +
+  # Flip coordinates for a horizontal bar chart and expand y-axis for labels
+  coord_flip(clip = "off") + # Clip = "off" ensures labels outside plot area are visible
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+
+# Display the plot
+dept_plot
+```
+
+## Distribution of Monthly salary
+
+This histogram illustrates the distribution of monthly salaries across the employee base, highlighting the median salary.
+
+```{r}
+
+# Load scales package for dollar formatting on axes
+library(scales)
+
+# Monthly Salary distribution plot
+p_M_Salary <- ggplot(df_employee, aes(x = Monthly_Salary)) +
+  geom_histogram(
+    binwidth = 500, # Bins of $500
+    fill = "#151931", # Dark blue fill
+    color = "white" # White border for bars
+  ) +
+  # Add count labels on top of each bar
+  stat_bin(
+    binwidth = 500,
+    geom = "text",
+    aes(label = after_stat(count)),
+    vjust = -0.5,  # Position above bars
+    color = "#151931",
+    size = 3.5,
+    fontface = "bold"
+  ) +
+  labs(
+    title = "Most Employees Earn $6K–7K/Month",
+    subtitle = paste("Median monthly salary: $", format(median(df_employee$Monthly_Salary), big.mark=","),
+                     " | n =", format(nrow(df_employee), big.mark=",")),
+    x = "Monthly Salary (USD)",
+    y = "Number of Employees",
+    caption = "Source: Company HR Data"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16, margin = margin(b = 10)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10), # Angle x-axis labels for readability
+    axis.title.y = element_text(margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    plot.caption = element_text(hjust = 0, margin = margin(t = 10)),
+    panel.grid.major = element_blank(), # Remove all major grid lines for cleaner look
+    panel.grid.minor = element_blank() # Remove all minor grid lines
+  ) +
+  scale_x_continuous(
+    labels = dollar_format(),  # Format as $10,000
+    breaks = seq(0, max(df_employee$Monthly_Salary), by = 500)  # Custom breaks for better readability
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) + # Expand y-axis to accommodate labels
+  # Add vertical line for median salary
+  geom_vline(
+    xintercept = median(df_employee$Monthly_Salary),
+    color = "#faca80", # Accent color for median line
+    linetype = "dashed",
+    linewidth = 1,
+    alpha = 0.8 # Slightly transparent
+  ) +
+  # Annotate median line directly on the plot
+  annotate(
+    "text",
+    x = median(df_employee$Monthly_Salary) * 1.1, # Position annotation slightly to the right of the line
+    y = max(ggplot_build(ggplot(df_employee, aes(x = Monthly_Salary)) + geom_histogram(binwidth = 500))$data[[1]]$count) * 0.9, # Dynamically adjust y-position
+    label = paste("Median:", dollar(median(df_employee$Monthly_Salary))),
+    color = "gray40",
+    fontface = "bold",
+    size = 3.5
+  )
+
+# Display plot
+p_M_Salary
+
+```
+
+## Employee distribution by Education level
+
+This bar chart illustrates the educational attainment of employees, showing the proportion of each education level within the company.
+
+```{r}
+
+# Prepare data: Count employees per education level, arrange by count, and reorder factor levels for plotting.
+edu_data <- df_employee %>%
+  count(Education_Level, name = "Count") %>%
+  arrange(desc(Count)) %>%
+  mutate(Education_Level = fct_reorder(Education_Level, Count))
+
+# Define a consistent color palette that aligns with the overall theme
+edu_colors <- c("#151931", "#2a3152", "#faca80", "#f8b865") # Dark blue, darker blue, light peach, darker peach
+
+# Create the Education Level plot
+edu_plot <- ggplot(edu_data, aes(x = Education_Level, y = Count,
+                               fill = Education_Level)) +
+  # Bars with custom color palette
+  geom_col(width = 0.7) +
+  # Add count labels on top of the bars
+  geom_text(aes(label = format(Count, big.mark = ",")),
+            vjust = -0.5, # Position labels above bars
+            size = 4,
+            fontface = "bold",
+            color = "#151931") + # Dark blue text for contrast
+  # Apply custom color scale manually
+  scale_fill_manual(values = edu_colors) +
+  # Titles and labels with markdown for specific highlighting
+  labs(
+    title = "<span style='font-size:18pt'>Employee distribution shows <span style='color:#151931'><br>Bachelor's Degree</span> dominance</span>",
+    subtitle = paste(format(edu_data$Count[edu_data$Education_Level == "Bachelor"], big.mark = ","),
+                    "employees hold bachelor's degrees |",
+                    format(sum(edu_data$Count), big.mark = ","), "total employees"),
+    x = NULL, # Remove x-axis label
+    y = NULL, # Remove y-axis label
+    caption = "Source: Company HR Data"
+  ) +
+  # Apply a consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(angle = 0, hjust = 0.5, # No rotation for clarity
+                               size = 11, color = "#151931"),
+    axis.text.y = element_blank(), # Hide y-axis text
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 40, 20) # Adjust margins
+  ) +
+  # Adjust y-axis expansion to accommodate labels
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+
+# Display the plot
+edu_plot
+
+```
+
+## Resignation status overview
+
+This bar chart provides a clear overview of employee resignation status, showing the active and resigned employee counts and percentages.
+
+```{r}
+
+# Prepare data: Count active and resigned employees, calculate percentages, and set factor levels.
+Resign_data <- df_employee %>%
+  count(Resigned, name = "Count") %>%
+  mutate(
+    Percentage = Count/sum(Count)*100,
+    Resigned = factor(Resigned, levels = c(TRUE, FALSE), labels = c("Resigned", "Active"))
+  )
+
+# Define a consistent color palette for resignation status
+resign_colors <- c("Resigned" = "#151931", "Active" = "#faca80") # Dark blue for resigned, accent for active
+
+# Create the Resignation Status plot
+Resign_plot <- ggplot(Resign_data, aes(x = Resigned, y = Count, fill = Resigned)) +
+  # Bars with custom color palette
+  geom_col(width = 0.5) +
+  # Add count and percentage labels on top of the bars
+  geom_text(aes(label = paste0(format(Count, big.mark = ","), "\n(", round(Percentage, 2), "%)")),
+            vjust = -0.3, # Position labels above bars
+            size = 3.5,
+            fontface = "bold",
+            color = "#151931") + # Dark blue text for contrast
+  # Apply custom color scale
+  scale_fill_manual(values = resign_colors) +
+  # Titles and labels with markdown for highlighting
+  labs(
+    title = "<span style='font-size:18pt'>10% of employees resigned</span>",
+    subtitle = paste(format(Resign_data$Count[Resign_data$Resigned == "Resigned"], big.mark = ","),
+                    " employees", sep = ""),
+    x = NULL, # Remove x-axis label
+    y = NULL, # Remove y-axis label
+    caption = paste("Total employees:", format(sum(Resign_data$Count), big.mark = ","))
+  ) +
+  # Apply a consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_markdown(hjust = 0.5, color = "gray40", size = 11, margin = margin(b = 10)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(size = 11, face = "bold", color = "#151931"),
+    axis.text.y = element_blank(), # Hide y-axis text
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 20, 20) # Adjust margins
+  ) +
+  # Adjust y-axis expansion to accommodate labels
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2)))
+
+# Display the plot
+Resign_plot
+
+```
+
+## Distribution of Employee Age
+
+This histogram with density overlay shows the age distribution of employees, highlighting the median and peak age.
+
+```{r}
+
+# Load ggtext for enhanced text formatting
+library(ggtext)
+
+# Calculate key statistics for age distribution
+age_stats <- df_employee %>%
+  summarise(
+    Median = median(Age),
+    Mean = mean(Age),
+    Peak_Age = as.numeric(names(which.max(table(Age)))), # Age with the highest frequency
+    Peak_Count = max(table(Age)), # Count at the peak age
+    Total_Employees = n()
+  )
+
+# Define consistent color palette and text colors for the plot
+plot_fill_low <- "#faca80"  # Light peach
+plot_fill_high <- "#151931" # Dark blue
+median_line_color <- "#f8b865" # Lighter accent for median line
+peak_text_fill <- "#2a3152" # Darker blue for peak age label background
+axis_text_color <- "#151931"
+subtitle_text_color <- "#666666"
+caption_text_color <- "#666666"
+
+# Create the Employee Age Distribution plot 
+age_plot <- ggplot(df_employee, aes(x = Age)) +
+  # Histogram with a fill gradient based on count
+  geom_histogram(
+    aes(fill = after_stat(count)),
+    binwidth = 1, # 1-year bins for precise distribution
+    color = "white", # White borders for bars
+    alpha = 0.9 # Slightly transparent
+  ) +
+  # Add a vertical line for the median age
+  geom_vline(
+    xintercept = age_stats$Median,
+    color = median_line_color,
+    linetype = "dashed", # Dashed line style
+    linewidth = 1.2
+  ) +
+  # Annotate the median age directly on the plot
+  annotate(
+    "label",
+    x = age_stats$Median,
+    y = age_stats$Peak_Count * 0.85, # Position relative to peak count
+    label = paste("MEDIAN:", age_stats$Median),
+    color = axis_text_color,
+    fill = "white", # White background for the label
+    fontface = "bold",
+    size = 4,
+    hjust = 0.5,
+    label.size = 0 # No border for the label
+  ) +
+  # Annotate the peak age directly on the plot
+  annotate(
+    "label",
+    x = age_stats$Peak_Age,
+    y = age_stats$Peak_Count * 1.05, # Position above the peak bar
+    label = paste("PEAK AGE:", age_stats$Peak_Age),
+    color = "white", # White text for contrast
+    fill = peak_text_fill,
+    fontface = "bold",
+    size = 3.5,
+    hjust = 0.5,
+    label.size = 0
+  ) +
+  # Apply a continuous fill color gradient
+  scale_fill_gradient(
+    low = plot_fill_low,
+    high = plot_fill_high,
+    guide = "none" # Hide the fill legend
+  ) +
+  # Set x-axis breaks and expansion
+  scale_x_continuous(
+    breaks = seq(20, 70, by = 5), # Breaks every 5 years
+    expand = expansion(mult = c(0.02, 0.02))
+  ) +
+  # Set y-axis expansion and format labels as commas
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.15)),
+    labels = comma_format() # Formats numbers with commas (e.g., 10,000)
+  ) +
+  # Add titles and captions with markdown support
+  labs(
+    title = "<span style='font-size:18pt'>Employee Age distribution shows <span style='color:#151931'><br>key Workforce demographics</span></span>",
+    subtitle = paste(
+      "Precise 1-year bins |",
+      format(age_stats$Total_Employees, big.mark = ","),
+      "employees |",
+      "Mean age:", round(age_stats$Mean, 1)
+    ),
+    x = "Age (Years)",
+    y = "Number of Employees",
+    caption = "Source: HR Analytics | Note: 1-year age bins"
+  ) +
+  # Apply a consistent minimal theme with custom elements
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = subtitle_text_color, margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = caption_text_color, margin = margin(t = 10)),
+    axis.title = element_text(face = "bold", color = axis_text_color),
+    axis.text.x = element_text(color = axis_text_color),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.minor = element_blank(), # Remove all minor grid lines
+    plot.margin = margin(20, 20, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA) # White plot background
+  )
+
+# Display the plot
+age_plot
+
+```
+:::
+
+::: {.callout-tip appearance="simple"}
+This initial data exploration reveals a high-quality, comprehensive HR dataset comprising 100,000 employee records across 20 distinct variables. Crucially, **the dataset is entirely free of missing values**, ensuring a clean foundation for all subsequent analyses. The variables capture a rich array of employee attributes, from demographics and tenure to compensation, performance, work habits, and well-being. A key initial insight is the company's **10.01% employee resignation rate**, **highlighting the critical importance of retention analysis**.
+:::
+
+# III. THEMATIC ANALYSIS: Deep dive into key HR questions
+
+This section delves into specific thematic areas, leveraging the preprocessed dataset to uncover deeper insights related to employee retention, performance, and satisfaction.
+
+## III.1 EMPLOYEE RETENTION & TURNOVER: Unpacking Resignation drivers
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### WHAT FACTORS PREDICT RESIGNATION?
+:::
+
+The following analyses explore various employee attributes to identify potential correlations with resignation status, helping to understand the underlying drivers of turnover.
+
+:::::::: {.panel-tabset .nav-pills}
+## Resignation rate by Gender
+
+This analysis examines whether there are notable differences in resignation rates across different gender groups within the company.
+
+```{r}
+
+# Ensure 'Resigned' is a factor with clear labels "No" and "Yes"
+df_employee <- df_employee %>%
+    mutate(Resigned = factor(Resigned, levels = c(FALSE, TRUE), labels = c("No", "Yes")))
+
+# Helper Function for calculating resignation rate by a given grouping variable.
+# This function is designed to improve code reusability and consistency across similar analyses.
+calculate_resignation_rate <- function(data, group_var) {
+  data %>%
+    group_by({{ group_var }}) %>% # Group by the specified variable
+    summarise(
+      Total_Employees = n(), # Count total employees in each group
+      Resigned_Count = sum(Resigned == "Yes"), # Count resigned employees in each group
+      Resignation_Rate = (Resigned_Count / Total_Employees) * 100, # Calculate resignation rate
+      .groups = 'drop' # Remove grouping after summarising
+    ) %>%
+    arrange(desc(Resignation_Rate)) # Arrange results by highest resignation rate for better visual hierarchy
+}
+
+# Calculate resignation rates for each gender
+resignation_by_gender <- calculate_resignation_rate(df_employee, Gender)
+
+# Define a consistent color palette for gender-based plots
+mck_colors_gender <- c("Female" = "#faca80", "Male" = "#151931", "Other" = "#8b8fa3") # Consistent brand colors
+
+# Create the plot for resignation rate by gender
+plot_gender <- ggplot(resignation_by_gender,
+                      aes(x = fct_reorder(Gender, -Resignation_Rate), # Reorder gender levels by resignation rate
+                          y = Resignation_Rate,
+                          fill = Gender)) +
+  geom_col(width = 0.6) + # Column width
+  # Add percentage labels on top of the bars
+  geom_text(aes(y = Resignation_Rate + 0.5,
+                label = sprintf("%.2f%%", Resignation_Rate)),
+            size = 4.5, color = "black", fontface = "bold") +
+  # Add 'n=' labels at the bottom of the bars (adjust vjust to avoid overlap)
+  geom_text(aes(y = 1, # Position at the bottom of the bar
+                label = paste0("n=", format(Total_Employees, big.mark = ","))),
+            size = 3.5, color = "white", vjust = -0.5, fontface = "bold") + # Adjusted vjust for better positioning
+  scale_fill_manual(values = mck_colors_gender) + # Apply custom color palette
+  scale_y_continuous(limits = c(0, max(resignation_by_gender$Resignation_Rate) * 1.2),
+                     expand = c(0, 0)) + # Expand y-axis to accommodate labels
+  labs(title = "<span style='font-size:18pt'>Resignation rates are similar across genders</span>",
+       subtitle = "Female and Male employees have slightly higher rates than 'Other' gender category", # More precise subtitle
+       x = NULL, # Remove x-axis label
+       y = "Resignation Rate (%)",
+       caption = paste("Total employees analyzed:", format(nrow(df_employee), big.mark = ","))) + # Updated caption
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, color = "gray40"),
+    plot.caption = element_text(hjust = 0, size = 9, color = "gray40", margin = margin(t = 10)),
+    axis.text.x = element_text(size = 11, face = "bold"),
+    axis.title.y = element_text(size = 10, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.minor.y = element_blank(), # Remove minor y grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+# Display the plot
+plot_gender
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+There appears to be **no significant difference** in resignation rates across different genders. This suggests that gender, on its own, is likely not a primary predictor of resignation in this dataset. This is a positive finding for equity if the goal is to have consistent retention across gender groups.
+:::
+
+## Resignation rate by Education level
+
+This analysis investigates whether an employee's educational background correlates with their likelihood of resigning from the company.
+
+```{r}
+
+# Calculate resignation rates by education level using the helper function
+resignation_by_education <- calculate_resignation_rate(df_employee, Education_Level)
+
+# Define a consistent color palette, ordered from highest to lowest resignation rate for visual consistency.
+mck_edu_colors <- c("#151931", "#f8b865", "#faca80", "#2a3152") # Dark blue, darker peach, light peach, darker blue
+
+# Create the plot for resignation rate by education level
+plot_education <- ggplot(resignation_by_education,
+                         aes(x = fct_reorder(Education_Level, -Resignation_Rate), # Reorder for visual impact
+                             y = Resignation_Rate,
+                             fill = fct_reorder(Education_Level, -Resignation_Rate))) + # Fill by reordered level
+  geom_col(width = 0.6) +
+  # Add percentage labels
+  geom_text(aes(y = Resignation_Rate + 0.5,
+                label = paste0(format(round(Resignation_Rate, 2), nsmall = 1), "%")),
+            size = 4.5, color = "black", fontface = "bold") +
+  # Add 'n=' labels
+  geom_text(aes(y = 1,
+                label = paste0("n=", format(Total_Employees, big.mark = ","))),
+            size = 3.5, color = "white", vjust = -1, fontface = "bold") +
+  scale_fill_manual(values = mck_edu_colors) + # Apply custom color palette
+  scale_y_continuous(limits = c(0, max(resignation_by_education$Resignation_Rate) * 1.2),
+                     expand = c(0, 0)) + # Expand y-axis
+  labs(title = "<span style='font-size:18pt'>Resignation rates slightly vary by Education Level</span>",
+       subtitle = paste("Highest among ", resignation_by_education$Education_Level[1],
+                       " (", round(resignation_by_education$Resignation_Rate[1], 1), "%)",
+                       " | Lowest among ", resignation_by_education$Education_Level[nrow(resignation_by_education)],
+                       " (", round(resignation_by_education$Resignation_Rate[nrow(resignation_by_education)], 1), "%)", sep = ""),
+       x = NULL,
+       y = "Resignation Rate (%)",
+       caption = paste("Total employees analyzed:", format(nrow(df_employee), big.mark = ","))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, color = "gray40"),
+    plot.caption = element_text(hjust = 0, size = 9, color = "gray40", margin = margin(t = 10)),
+    axis.text.x = element_text(size = 11, face = "bold"),
+    axis.title.y = element_text(size = 10, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.minor.y = element_blank(), # Remove minor y grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+# Display the plot
+plot_education
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+Education level, like gender, does not seem to be a strong individual predictor of resignation. **Employees with a PhD have a marginally higher rate, but the difference is minimal and might not be statistically significant** without further testing. This suggests that the company is retaining talent fairly consistently across different educational backgrounds.
+:::
+
+## Age distribution by Resignation status
+
+This visualization uses half-violin plots and box plots to compare the age distributions of active and resigned employees, highlighting medians and interquartile ranges.
+
+```{r}
+
+# Load ggdist for half-violin plots and glue for string formatting
+library(ggdist)
+library(glue)
+
+# Calculate key age statistics (median, quartiles) for both active and resigned groups
+stats <- df_employee %>%
+  group_by(Resigned) %>%
+  summarise(
+    median = median(Age),
+    q1 = quantile(Age, 0.25),
+    q3 = quantile(Age, 0.75),
+    .groups = 'drop'
+  )
+
+# Define consistent color palette and text colors
+pal_age <- c("Yes" = "#151931", "No" = "#faca80") # Dark blue for resigned, accent for active
+text_color <- "#151931"
+grid_color <- "#e0e0e0"
+
+# Create half-violin and box plot for age distribution by resignation status
+mck_violin <- ggplot(df_employee, aes(x = Resigned, y = Age)) +
+  # Half-violin plot (left side) to show density distribution
+  ggdist::stat_halfeye(
+    aes(fill = Resigned),
+    side = "left", # Plot on the left side of the x-axis tick
+    adjust = 0.5, # Adjust bandwidth for density estimation
+    width = 0.6, # Width of the half-violin
+    .width = 0, # Do not draw lines for quantiles within the half-violin
+    justification = 1.2, # Push the violin away from the center
+    point_colour = NA, # No points for individual data points
+    alpha = 0.8 # Transparency
+  ) +
+  # Boxplot elements to show quartiles and median
+  geom_boxplot(
+    aes(fill = Resigned),
+    width = 0.15, # Width of the boxplot
+    outlier.shape = NA, # Do not show outlier points
+    alpha = 0.7
+  ) +
+  # Median points
+  geom_point(
+    data = stats,
+    aes(y = median),
+    shape = 21, # Circle with border
+    size = 3,
+    fill = "white",
+    color = text_color,
+    stroke = 1.2 # Border thickness
+  ) +
+  # Direct labels for medians
+  geom_text(
+    data = stats,
+    aes(y = median, label = glue::glue("Median: {median}")),
+    hjust = -0.2, # Position text slightly to the right
+    size = 3.5,
+    fontface = "bold",
+    color = text_color,
+    nudge_x = 0.05
+  ) +
+  # IQR labels (Q1 and Q3)
+  geom_text(
+    data = stats,
+    aes(y = q1, label = glue::glue("Q1: {q1}")),
+    hjust = 1.3, # Position text slightly to the left
+    size = 3,
+    color = text_color,
+    nudge_x = -0.05
+  ) +
+  geom_text(
+    data = stats,
+    aes(y = q3, label = glue::glue("Q3: {q3}")),
+    hjust = 1.3, # Position text slightly to the left
+    size = 3,
+    color = text_color,
+    nudge_x = -0.05
+  ) +
+  # Apply custom color scale
+  scale_fill_manual(values = pal_age) +
+  # Rename x-axis labels for clarity
+  scale_x_discrete(labels = c("Yes" = "Resigned", "No" = "Active")) +
+  # Titles and labels with markdown for highlighting
+  labs(
+    title = "<span style='font-size:18pt'>Age distribution shows <span style='color:#151931'>similar patterns</span> <br> across Resignation status</span>",
+    subtitle = "Median ages and interquartile ranges are nearly identical between groups",
+    x = NULL, # Remove x-axis label
+    y = "Age",
+    caption = paste("Total employees analyzed:", format(nrow(df_employee), big.mark = ","))
+  ) +
+  # Apply a consistent minimal theme with custom elements
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, size = 9, color = text_color, margin = margin(t = 10)),
+    axis.title.y = element_text(angle = 0, vjust = 0.5, color = text_color), # Rotate y-axis title
+    axis.text.x = element_text(size = 11, face = "bold", color = text_color),
+    axis.text.y = element_text(color = text_color),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.minor = element_blank(), # Remove all minor grid lines
+    panel.grid.major.y = element_line(color = grid_color), # Keep major y grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 40, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  coord_cartesian(clip = "off") # Allows labels to extend beyond plot boundaries
+
+# Display the plot
+mck_violin
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+Age, by itself, does not appear to be a strong differentiator between employees who resign and those who stay. Resignations are occurring across all age groups in proportions very similar to the overall age distribution of the workforce. This implies that age alone might not be a key factor in predicting turnover for this company.
+:::
+
+## Monthly Salary Distribution by Resignation Status
+
+This analysis compares the distribution of monthly salaries for active and resigned employees to identify any significant differences in compensation patterns related to turnover.
+
+```{r}
+
+# Calculate key salary statistics (median, quartiles, IQR) for both active and resigned groups
+salary_stats <- df_employee %>%
+  group_by(Resigned) %>%
+  summarise(
+    Median = median(Monthly_Salary),
+    Q1 = quantile(Monthly_Salary, 0.25),
+    Q3 = quantile(Monthly_Salary, 0.75),
+    IQR = IQR(Monthly_Salary),
+    .groups = 'drop'
+  )
+
+# Define consistent color palette
+pal_salary <- c("No" = "#faca80", "Yes" = "#151931") # Accent for active, dark blue for resigned
+
+# Create half-violin and box plot for salary distribution by resignation status
+plot_salary <- ggplot(df_employee, aes(x = Resigned, y = Monthly_Salary, fill = Resigned)) +
+  # Half-violin plot (left side)
+  ggdist::stat_halfeye(
+    side = "left",
+    adjust = 0.5,
+    width = 0.6,
+    justification = 1.2,
+    alpha = 0.7,
+    point_colour = NA # Do not plot individual points for half-violin
+  ) +
+  # Boxplot
+  geom_boxplot(
+    width = 0.12,
+    outlier.shape = NA, # Do not show outlier points
+    alpha = 0.9
+  ) +
+  # Median points
+  geom_point(
+    data = salary_stats,
+    aes(y = Median),
+    shape = 21,
+    size = 3,
+    fill = "white",
+    color = "#151931",
+    stroke = 1.2
+  ) +
+  # Direct labels for Medians
+  geom_text(
+    data = salary_stats,
+    aes(y = Median, label = paste("Median:", dollar(Median))),
+    hjust = -0.2, # Position text slightly to the right
+    size = 3.5,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  # IQR labels
+  geom_text(
+    data = salary_stats,
+    aes(y = Q1, label = paste("Q1:", dollar(Q1))),
+    hjust = 1.3, # Position text slightly to the left
+    size = 3,
+    color = "#151931"
+  ) +
+  geom_text(
+    data = salary_stats,
+    aes(y = Q3, label = paste("Q3:", dollar(Q3))),
+    hjust = 1.3, # Position text slightly to the left
+    size = 3,
+    color = "#151931"
+  ) +
+  # Apply custom color scale
+  scale_fill_manual(values = pal_salary) +
+  # Rename x-axis labels
+  scale_x_discrete(labels = c("No" = "Active", "Yes" = "Resigned")) +
+  # Format y-axis as currency
+  scale_y_continuous(labels = dollar_format()) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Salary distribution doesn't show <span style='color:#151931'> <br>clear differences</span> by Resignation Status</span>",
+    subtitle = paste("Median salary gap:", dollar(abs(diff(salary_stats$Median))), "between groups"),
+    x = NULL, # Remove x-axis label
+    y = "Monthly Salary",
+    caption = paste("Total employees analyzed:", format(nrow(df_employee), big.mark = ","))
+  ) +
+  # Apply consistent theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40"),
+    plot.caption = element_text(hjust = 0, color = "gray40"),
+    axis.text.x = element_text(size = 11, face = "bold", color = "#151931"),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, color = "#151931"),
+    axis.text.y = element_text(color = "#151931"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "#e0e0e0"),
+    legend.position = "none",
+    plot.margin = margin(20, 40, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  coord_cartesian(clip = "off")
+
+# Display the plot
+plot_salary
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+There is **no clear pattern** indicating that employees with higher or lower monthly salaries are disproportionately more likely to resign. Resignations are distributed across the entire salary spectrum. This suggests that raw monthly salary alone is not a primary driver of turnover; other factors related to compensation (e.g., perceived fairness, benefits, growth opportunities tied to salary) or non-compensation factors might be more influential.
+:::
+
+## Employee Satisfaction score by Resignation status
+
+This analysis visually compares the distribution of employee satisfaction scores between active and resigned employees to understand if satisfaction is a key factor in turnover.
+
+```{r}
+
+# Calculate key satisfaction statistics (median, quartiles) for both active and resigned groups
+satisfaction_stats <- df_employee %>%
+  group_by(Resigned) %>%
+  summarise(
+    Median = median(Employee_Satisfaction_Score),
+    Q1 = quantile(Employee_Satisfaction_Score, 0.25),
+    Q3 = quantile(Employee_Satisfaction_Score, 0.75),
+    .groups = 'drop'
+  )
+
+# Define consistent color palette
+pal_satisfaction <- c("No" = "#faca80", "Yes" = "#151931") # Accent for active, dark blue for resigned
+
+# Create half-violin and box plot for satisfaction distribution
+plot_satisfaction <- ggplot(df_employee,
+                           aes(x = Resigned,
+                               y = Employee_Satisfaction_Score,
+                               fill = Resigned)) +
+  # Half-violin plot (left side)
+  ggdist::stat_halfeye(
+    side = "left",
+    adjust = 0.5,
+    width = 0.6,
+    justification = 1.2,
+    alpha = 0.7,
+    point_colour = NA
+  ) +
+  # Boxplot
+  geom_boxplot(
+    width = 0.12,
+    outlier.shape = NA,
+    alpha = 0.9
+  ) +
+  # Median points
+  geom_point(
+    data = satisfaction_stats,
+    aes(y = Median),
+    shape = 21,
+    size = 3,
+    fill = "white",
+    color = "#151931",
+    stroke = 1.2
+  ) +
+  # Direct labels for Medians
+  geom_text(
+    data = satisfaction_stats,
+    aes(y = Median,
+        label = paste0("Median: ", round(Median, 1))),
+    hjust = -0.2,
+    size = 3.5,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  # IQR labels
+  geom_text(
+    data = satisfaction_stats,
+    aes(y = Q1, label = paste0("Q1: ", round(Q1, 1))),
+    hjust = 1.3,
+    size = 3,
+    color = "#151931"
+  ) +
+  geom_text(
+    data = satisfaction_stats,
+    aes(y = Q3, label = paste0("Q3: ", round(Q3, 1))),
+    hjust = 1.3,
+    size = 3,
+    color = "#151931"
+  ) +
+  # Apply custom color scale
+  scale_fill_manual(values = pal_satisfaction) +
+  # Rename x-axis labels
+  scale_x_discrete(labels = c("No" = "Active", "Yes" = "Resigned")) +
+  scale_y_continuous(breaks = 1:5,
+                     limits = c(0.5, 5.5)) + # Assuming 1-5 scale for satisfaction
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Satisfaction scores show <br> <span style='color:#151931'>No apparent difference Gap</span> between Groups</span>",
+    subtitle = paste("Median satisfaction difference:",
+                    round(abs(diff(satisfaction_stats$Median)), 1),
+                    "points between resigned and active employees"),
+    x = NULL, # Remove x-axis label
+    y = "Employee Satisfaction Score (1-5)", # Updated scale in label
+    caption = paste("Total employees analyzed:", format(nrow(df_employee), big.mark = ","))
+  ) +
+  # Apply consistent theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40"),
+    plot.caption = element_text(hjust = 0, color = "gray40"),
+    axis.text.x = element_text(face = "bold", size = 11),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, color = "#151931"),
+    axis.text.y = element_text(color = "#151931"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(color = "#e0e0e0"),
+    legend.position = "none",
+    plot.margin = margin(20, 40, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  coord_cartesian(clip = "off")
+
+# Display the plot
+plot_satisfaction
+
+```
+
+::: {.callout-note appearance="minimal" icon="false"}
+This is a surprising finding. There is **no apparent difference in employee satisfaction scores** between those who resign and those who stay. This contradicts the common assumption that lower satisfaction directly leads to higher turnover. This could indicate a few things:
+
+-   The satisfaction score itself might not be capturing the *specific* dissatisfaction that leads to resignation.
+-   Employees might be leaving for reasons *unrelated* to their current satisfaction (e.g., better external opportunities, career progression, personal reasons, manager relationship not captured by overall satisfaction).
+-   The scale of satisfaction (1-5) might be too broad or not granular enough to detect subtle differences that are actually impactful.
+:::
+::::::::
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+Based on these initial outputs, factors like **Gender, Education Level, Age, and Monthly Salary do not appear to be strong individual predictors of resignation**. Surprisingly, **Employee Satisfaction Score also does not show a clear relationship with turnover**.
+
+This means we need to look deeper into other factors and their combinations.
+:::
+::::
+
+------------------------------------------------------------------------
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### DOES REMOTE WORK FREQUENCY IMPACT RETENTION?
+:::
+
+This analysis investigates the relationship between the frequency of remote work and employee resignation rates.
+
+```{r}
+
+# Calculate resignation rates by Remote_Work_Frequency
+resignation_data_remote <- df_employee %>% # Renamed variable to avoid conflict
+  group_by(Remote_Work_Frequency) %>%
+  summarise(
+    Total_Employees = n(),
+    Resigned_Count = sum(Resigned == "Yes"),
+    Resignation_Rate = (Resigned_Count / Total_Employees) * 100,
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(Resignation_Rate))
+
+# Create plot for remote work resignation rates
+remote_work_plot <- ggplot(resignation_data_remote, # Use the renamed data variable
+                          aes(x = fct_reorder(Remote_Work_Frequency, -Resignation_Rate),
+                              y = Resignation_Rate,
+                              fill = Resignation_Rate)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = sprintf("%.2f%%", Resignation_Rate)),
+            vjust = -0.5, size = 4.5, fontface = "bold", color = "#151931") +
+  geom_text(aes(y = 1, label = paste0("n=", format(Total_Employees, big.mark = ","))),
+            size = 3.5, color = "white", vjust = 1.2, fontface = "bold") +
+  scale_fill_gradient(low = "#faca80", high = "#151931", guide = "none") +
+  labs(
+    title = "<span style='font-size:18pt'>Fully office-based staff show<span style='color:#151931'><br>highest attrition</span> (10.0%)</span>", # Updated title to reflect the finding
+    subtitle = "Resignation rates decline as remote work frequency increases",
+    x = "Remote Work Frequency (%)", # Clearer x-axis label
+    y = "Resignation Rate (%)",
+    caption = paste("Total employees analyzed:",format(sum(resignation_data_remote$Total_Employees), big.mark = ","))
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", size = 12, margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(face = "bold", size = 11, color = "#151931"),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)),
+                     limits = c(0, max(resignation_data_remote$Resignation_Rate) * 1.2))
+
+# Display the plot
+remote_work_plot
+
+
+```
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+There's a subtle but interesting trend here. Employees who work *fully in-office* (0% remote) have a slightly lower resignation rate (9.48%) compared to those who engage in remote work at any frequency, where rates are generally just above 10%. While the differences are not dramatic, it suggests that fully in-office roles might have a marginally higher retention rate. This warrants further investigation to understand if this is due to the nature of the roles, company culture, or other confounding factors. For example, some roles might inherently require more in-office presence and also be more stable.
+:::
+::::
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### ARE LOWER-PERFORMING EMPLOYEES MORE LIKELY TO LEAVE?
+:::
+
+This analysis examines the relationship between an employee's performance score and their likelihood of resignation.
+
+```{r}
+
+# Calculate resignation rates by Performance_Score
+performance_data_resignation <- df_employee %>% # Renamed variable to avoid conflict
+  group_by(Performance_Score) %>%
+  summarise(
+    Total_Employees = n(),
+    Resigned_Count = sum(Resigned == "Yes"),
+    Resignation_Rate = (Resigned_Count / Total_Employees) * 100,
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(Resignation_Rate))
+
+# Create plot for performance score and resignation rates
+performance_plot_resignation <- ggplot(performance_data_resignation, # Use the renamed data variable
+                         aes(x = fct_reorder(Performance_Score, -Resignation_Rate),
+                             y = Resignation_Rate,
+                             fill = Resignation_Rate)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = sprintf("%.2f%%", Resignation_Rate)),
+            vjust = -0.5, size = 4.5, fontface = "bold", color = "#151931") +
+  geom_text(aes(y = 1, label = paste0("n=", format(Total_Employees, big.mark = ","))),
+            size = 3.5, color = "white", vjust = 1.2, fontface = "bold") +
+  scale_fill_gradient(low = "#faca80", high = "#151931", guide = "none") +
+  labs(
+    title = "<span style='font-size:18pt'>Lower performers show <span style='color:#151931'>higher attrition</span> (10.2%)</span>", # Updated title
+    subtitle = "Resignation rates decrease as performance scores improve",
+    x = "Performance Score (1-5)", # Clearer x-axis label
+    y = "Resignation Rate (%)",
+    caption = paste("Total employees analyzed:", format(sum(performance_data_resignation$Total_Employees), big.mark = ","))
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(face = "bold", size = 11, color = "#151931"),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, hjust = 0.5, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)),
+                     limits = c(0, max(performance_data_resignation$Resignation_Rate) * 1.2))
+
+# Display the plot
+performance_plot_resignation
+```
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+This is another counter-intuitive finding. There is **no clear indication that lower-performing employees (Scores 1 or 2) are significantly more likely to leave** than higher-performing employees (Scores 4 or 5). In fact, employees with a Performance Score of 5 (the highest) have the *lowest* resignation rate, although by a small margin. This suggests that the company isn't experiencing "bad turnover" where only low performers leave, but rather turnover is happening across the performance spectrum. This could mean that the company's retention challenges are systemic rather than tied to individual performance levels.
+:::
+::::
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### DOES TENURE (Years_At_Company) CORRELATE WITH RESIGNATION RISK?
+:::
+
+This analysis segments employees by their years at the company to identify how tenure influences resignation rates.
+
+```{r}
+
+# Create tenure bins and calculate resignation rates
+resignation_by_tenure <- df_employee %>%
+  mutate(
+    tenure_bin = cut(Years_At_Company,
+      breaks = c(-Inf, 1, 3, 5, 7, 10, Inf), # Define clear tenure bins
+      labels = c("0-1 year", "1-3 years", "3-5 years", "5-7 years", "7-10 years", "10+ years"),
+      right = FALSE # Intervals are [lower, upper)
+    )
+  ) %>%
+  group_by(tenure_bin) %>%
+  summarise(
+    total_employees = n(),
+    resigned_count = sum(Resigned == "Yes"),
+    resignation_rate = (resigned_count / total_employees) * 100,
+    .groups = 'drop'
+  )
+
+# Create plot for tenure and resignation rates
+tenure_plot <- ggplot(resignation_by_tenure,
+                     aes(x = fct_reorder(tenure_bin, resignation_rate), # Order by resignation rate
+                         y = resignation_rate,
+                         fill = resignation_rate)) +
+  geom_col(width = 0.8) +
+  geom_text(
+    aes(label = sprintf("%.2f%%", resignation_rate)),
+    vjust = -0.5,
+    size = 4.5,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  geom_text(
+    aes(y = 1, label = paste0("n=", format(total_employees, big.mark = ","))),
+    size = 3.5,
+    color = "white",
+    vjust = 0.7,
+    fontface = "bold"
+  ) +
+  scale_fill_gradient(low = "#151931", high = "#faca80", guide = "none") + # Gradient fill
+  labs(
+    title = "<span style='font-size:18pt'>Highest attrition (15.9%) among oldest employees<br> (0-1 year)</span>", 
+    subtitle = "Resignation rates decline with tenure, then rise again after 10+ years",
+    x = "Years at Company", 
+    y = "Resignation Rate (%)",
+    caption = paste("Total employees analyzed:", format(sum(resignation_by_tenure$total_employees), big.mark = ","))
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(angle = 0, hjust = 0.5, size = 11, color = "#151931"),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, hjust = 0.5, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    plot.margin = margin(20, 20, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)),
+                     limits = c(0, max(resignation_by_tenure$resignation_rate) * 1.2))
+
+# Display the plot
+tenure_plot
+
+```
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+This is a crucial insight!
+
+-   Contrary to a common belief that new hires are most volatile, the **highest resignation rate is observed among the most tenured employees (10+ Years)**, reaching almost 16%. This is a significant outlier compared to the \~10% rate for all other tenure bands. This group, although small in total number (44 employees), shows a distinct pattern. This could indicate issues related to career stagnation, lack of new challenges, or retirement for long-serving employees.
+-   For the majority of the workforce (0-10 years), the resignation rate remains fairly consistent around 10%, indicating that the "honeymoon phase" or early career challenges aren't leading to disproportionately high turnover in this dataset.
+:::
+::::
+
+::: {.callout-tip appearance="simple"}
+### SUMMARY **EMPLOYEE RETENTION & TURNOVER**:
+
+1.  **Demographics (Gender, Education, Age) and Base Salary:** These factors **do not appear to be strong individual predictors** of resignation. Turnover rates are largely consistent across different groups defined by these attributes.
+2.  **Employee Satisfaction:** Surprisingly, overall `Employee_Satisfaction_Score` **does not show a clear relationship with resignation**. This suggests that dissatisfaction might not be captured by this single metric, or employees are leaving for reasons beyond general satisfaction.
+3.  **Remote Work Frequency:** Employees who work **fully in-office (0% remote) have a slightly lower resignation rate** than those with any level of remote work. While the difference is small, it's worth noting.
+4.  **Performance Score:** **Lower-performing employees are not more likely to leave.** Turnover happens across all performance levels, and surprisingly, the highest performers have the *lowest* (though marginally) resignation rate. This indicates that the company is not just shedding low performers.
+5.  **Tenure (Years_At_Company):** This is the most impactful factor so far. The **highest resignation risk is observed among employees with 10+ years of tenure**, showing a significantly elevated resignation rate compared to other tenure groups. Turnover for employees with less than 10 years of tenure is relatively stable.
+:::
+
+------------------------------------------------------------------------
+
+## III.2 PERFORMANCE & PRODUCTIVITY: Uncovering drivers of success
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### WHAT DRIVES PERFORMANCE SCORES?
+:::
+
+This section explores various factors that might influence employee performance scores, examining departmental performance, educational attainment, and the relationship between salary and performance.
+
+::: panel-tabset
+## Average Performance score by Department
+
+This bar chart illustrates the average performance score for each department, highlighting departments with the highest and lowest scores relative to the company average.
+
+```{r}
+
+# Calculate average performance by department
+performance_data_department <- df_employee %>% # Renamed variable
+  mutate(Performance_Score_Numeric = as.numeric(Performance_Score)) %>% # Convert factor to numeric for calculations
+  group_by(Department) %>%
+  summarise(
+    avg_score = mean(Performance_Score_Numeric, na.rm = TRUE),
+    n_employees = n(),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_score)) %>% # Order by average score
+  mutate(
+    performance_gap = avg_score - mean(avg_score), # Calculate gap from overall average
+    highlight = case_when(
+      avg_score == max(avg_score) ~ "top", # Highlight top performer
+      avg_score == min(avg_score) ~ "bottom", # Highlight bottom performer
+      TRUE ~ "middle" # Default for others
+    )
+  )
+
+# Create plot for average performance score by department
+performance_plot_department <- ggplot(performance_data_department, # Use the renamed data variable
+                         aes(x = fct_reorder(Department, avg_score), # Reorder departments for better visualization
+                             y = avg_score,
+                             fill = highlight)) +
+  # Bars
+  geom_col(width = 0.8) +
+  # Reference line for overall company average performance
+  geom_hline(
+    yintercept = mean(performance_data_department$avg_score),
+    color = "#666666",
+    linetype = "dashed",
+    linewidth = 0.8
+  ) +
+  # Score labels on bars
+  geom_text(
+    aes(label = sprintf("%.2f", avg_score)),
+    hjust = -0.2, # Position labels outside the bars
+    size = 3.8,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  # Performance gap labels for top/bottom departments
+  geom_text(
+    aes(y = mean(avg_score),
+        label = ifelse(highlight %in% c("top", "bottom"),
+                      sprintf("%+.2f", performance_gap), "")),
+    hjust = 1.2, # Position relative to the average line
+    size = 3.2,
+    color = ifelse(performance_data_department$highlight == "top", "#1a7d1a", "#c00000"), # Green for positive, red for negative gap
+    fontface = "bold"
+  ) +
+  # Employee count labels at the bottom of the bars
+  geom_text(
+    aes(y = 0.2, label = paste0("n=", format(n_employees, big.mark = ","))),
+    hjust = 0, # Align to the left of the bar
+    size = 3,
+    color = "white",
+    fontface = "bold"
+  ) +
+  # Custom color scale for highlights
+  scale_fill_manual(values = c(
+    "top" = "#faca80",
+    "middle" = "#2a3152",
+    "bottom" = "#151931"
+  )) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Engineering leads Department Performance (3.02/5)</span>",
+    subtitle = "Marketing trails by -0.38 points from company average",
+    x = NULL, # Remove x-axis label
+    y = NULL, # Remove y-axis label
+    caption = paste("Performance scale: 1-5 | Company average:",
+                   round(mean(performance_data_department$avg_score), 2),
+                   "| Total employees analyzed:", format(sum(performance_data_department$n_employees), big.mark = ","))
+  ) +
+  # Flip coordinates for horizontal bars
+  coord_flip() +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_blank(), # Hide x-axis text as labels are on bars
+    axis.text.y = element_text(face = "bold", size = 11, color = "#151931", margin = margin(r = 10)),
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 80, 20, 20), # Increased right margin for gap labels
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 5.2), # Set y-axis limits to match performance score scale (1-5)
+    breaks = seq(0, 5, by = 0.5), # Define breaks for y-axis
+    expand = expansion(mult = c(0, 0.1))
+  )
+
+# Display the plot
+performance_plot_department
+```
+
+## Average Performance score by Education Level
+
+This analysis examines whether educational attainment correlates with average employee performance scores.
+
+```{r}
+
+# Calculate performance by education level with gaps from the company average
+edu_performance <- df_employee %>%
+  mutate(Performance_Score_Numeric = as.numeric(Performance_Score)) %>% # Ensure numeric for calculation
+  group_by(Education_Level) %>%
+  summarise(
+    avg_score = mean(Performance_Score_Numeric, na.rm = TRUE),
+    n_employees = n(),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    company_avg = mean(avg_score), # Calculate overall company average for comparison
+    performance_gap = avg_score - company_avg, # Calculate gap from company average
+    highlight = case_when(
+      avg_score == max(avg_score) ~ "top", # Highlight top performer
+      avg_score == min(avg_score) ~ "bottom", # Highlight bottom performer
+      TRUE ~ "middle" # Default for others
+    )
+  ) %>%
+  arrange(desc(avg_score)) # Order by average score
+
+# Create plot for average performance score by education level
+edu_plot_performance <- ggplot(edu_performance, # Use the renamed data variable
+                  aes(x = fct_reorder(Education_Level, avg_score), # Reorder education levels
+                      y = avg_score,
+                      fill = highlight)) +
+  geom_col(width = 0.7) +
+  # Reference line for overall company average performance
+  geom_hline(
+    yintercept = mean(edu_performance$avg_score),
+    color = "#666666",
+    linetype = "dashed",
+    linewidth = 0.8
+  ) +
+  # Score labels on bars
+  geom_text(
+    aes(label = sprintf("%.2f", avg_score)),
+    hjust = -0.2, # Position labels outside the bars
+    size = 4,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  # Performance gap labels (NEW) for meaningful gaps
+  geom_text(
+    aes(y = company_avg,
+        label = ifelse(abs(performance_gap) > 0.01,  # Only show meaningful gaps (e.g., > 0.01)
+                      sprintf("%+.2f", performance_gap), "")),
+    hjust = 1.2, # Position relative to the average line
+    size = 3.5,
+    color = ifelse(edu_performance$performance_gap > 0, "#1a7d1a", "#c00000"), # Green for positive, red for negative
+    fontface = "bold"
+  ) +
+  # Employee count labels
+  geom_text(
+    aes(y = 0.2, label = paste0("n=", format(n_employees, big.mark = ","))),
+    hjust = 0, # Align to the left
+    size = 3.2,
+    color = "white",
+    fontface = "bold"
+  ) +
+  # Custom color scale
+  scale_fill_manual(values = c(
+    "top" = "#faca80",
+    "middle" = "#2a3152",
+    "bottom" = "#151931"
+  )) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>PhD holders outperform by +0.03 points</span>",
+    subtitle = "High school graduates trail company average by -0.02 points",
+    x = NULL, # Remove x-axis label
+    y = NULL, # Remove y-axis label
+    caption = paste("Performance scale: 1-5 | Company average:",
+                   round(mean(edu_performance$avg_score), 2),
+                   "| Total employees analyzed:", format(sum(edu_performance$n_employees), big.mark = ","))
+  ) +
+  # Flip coordinates for horizontal bars
+  coord_flip() +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_blank(), # Hide x-axis text
+    axis.text.y = element_text(face = "bold", size = 11, color = "#151931"),
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 100, 20, 20),  # Increased right margin for gap labels
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 5.2),
+    breaks = seq(0, 5, by = 0.5),
+    expand = expansion(mult = c(0, 0.1))
+  )
+
+# Display the plot
+edu_plot_performance
+
+```
+
+## Performance score vs. Monthly Salary (Scatter plot with smooth line)
+
+This scatter plot visualizes the relationship between monthly salary and performance score, including a linear regression line to indicate the trend.
+
+```{r}
+
+# Ensure Performance_Score is numeric for correlation calculation and plotting
+df_employee <- df_employee %>% mutate(Performance_Score_Numeric = as.numeric(Performance_Score))
+
+# Calculate Pearson correlation coefficient and key statistics
+correlation <- cor(df_employee$Monthly_Salary, df_employee$Performance_Score_Numeric, use = "complete.obs")
+salary_stats_performance <- df_employee %>% # Renamed variable
+  summarise(
+    median_salary = median(Monthly_Salary),
+    avg_performance = mean(Performance_Score_Numeric, na.rm = TRUE)
+  )
+
+# Create enhanced scatter plot
+performance_salary_plot <- ggplot(df_employee,
+                                 aes(x = Monthly_Salary,
+                                     y = Performance_Score_Numeric)) +
+  # Add points, with slight transparency for overlapping points
+  geom_point(alpha = 0.5, color = "#151931") + # Dark blue points
+  # Add a linear regression line to show the trend
+  geom_smooth(method = "lm",
+              color = "#e55807",  # orange for the regression line
+              linewidth = 1.5,
+              se = FALSE) + # Do not show standard error band
+  # Add reference lines for median salary and average performance
+  geom_hline(yintercept = salary_stats_performance$avg_performance,
+             linetype = "dashed",
+             color = "#666666") +
+  geom_vline(xintercept = salary_stats_performance$median_salary,
+             linetype = "dashed",
+             color = "#666666") +
+  # Annotate the correlation coefficient on the plot
+  annotate("text",
+           x = max(df_employee$Monthly_Salary) * 0.95, # Position in top right corner
+           y = max(df_employee$Performance_Score_Numeric) * 0.95,
+           label = sprintf("r = %.2f", correlation),
+           color = "#151931",
+           size = 5,
+           fontface = "bold") +
+  # Set x-axis as currency and define breaks
+  scale_x_continuous(labels = dollar_format(),
+                     breaks = seq(4000, 9000, by = 1000)) +
+  # Set y-axis limits and breaks for performance scores
+  scale_y_continuous(limits = c(1, 5),
+                     breaks = 1:5) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Modest positive correlation (r = 0.51) <br>between Salary and Performance</span>",
+    subtitle = "Higher salaries show slightly better Performance Scores on average",
+    x = "Monthly Salary (USD)", # Clearer x-axis label
+    y = "Performance Score (1-5)",
+    caption = paste("Total employees analyzed: n =", format(nrow(df_employee), big.mark = ","),
+                    "| Median salary:", dollar(salary_stats_performance$median_salary),
+                    "| Average performance:", round(salary_stats_performance$avg_performance, 2))
+  ) +
+  # Apply consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.title = element_text(color = "#151931"),
+    axis.text = element_text(color = "#151931"),
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  )
+
+# Display the plot
+performance_salary_plot
+```
+:::
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+From these initial analyses on performance drivers:
+
+-   **Monthly Salary** shows a positive correlation with Performance Score, suggesting that higher earners tend to be higher performers.
+-   **Department and Education Level** do not appear to be strong individual drivers of performance scores, as average scores are very consistent across these categories, or no clear trend is observed.
+:::
+::::
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### DOES OVERTIME IMPROVE OR HARM PERFORMANCE?
+:::
+
+This analysis investigates the relationship between overtime hours worked and employee performance scores, aiming to understand if there's an optimal level of overtime.
+
+```{r}
+
+# Prepare data with proper overtime bins and calculate average performance
+overtime_data_performance <- df_employee %>% # Renamed variable
+  mutate(
+    Overtime_Bin = factor(
+      cut(Overtime_Hours,
+          breaks = c(-1, 4, 9, 14, 19, 24, Inf), # Define clear bins for overtime hours
+          labels = c("0-4h", "5-9h", "10-14h", "15-19h", "20-24h", "25+h"),
+          right = FALSE # Intervals are [lower, upper)
+      )
+    )
+  ) %>%
+  group_by(Overtime_Bin) %>%
+  summarise(
+    avg_score = mean(Performance_Score_Numeric, na.rm = TRUE),
+    n_employees = n(),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    performance_gap = avg_score - mean(avg_score), # Calculate gap from overall average
+    highlight = ifelse(avg_score == max(avg_score), "top", "normal") # Highlight the top performer bin
+  )
+
+# Create plot for overtime hours and average performance score
+overtime_plot <- ggplot(overtime_data_performance, # Use the renamed data variable
+                       aes(x = fct_reorder(Overtime_Bin, avg_score), # Reorder by average score
+                           y = avg_score,
+                           fill = highlight)) +
+  geom_col(width = 0.7) +
+  # Reference line for overall company average performance
+  geom_hline(
+    yintercept = mean(overtime_data_performance$avg_score),
+    color = "#666666",
+    linetype = "dashed",
+    linewidth = 0.8
+  ) +
+  # Score labels on bars
+  geom_text(
+    aes(label = sprintf("%.2f", avg_score)),
+    vjust = -0.5,
+    size = 4,
+    fontface = "bold",
+    color = "#151931"
+  ) +
+  # Performance gap labels for highlighted bins
+  geom_text(
+    aes(y = avg_score, 
+        label = ifelse(abs(performance_gap) > 0.005, # Only show if gap is significant
+                      sprintf("%+.2f", performance_gap), "")),
+    vjust = 1.5,
+    size = 3.5,
+    color = ifelse(overtime_data_performance$performance_gap > 0, "#1a7d1a", "#c00000"), # Green for positive, red for negative
+    fontface = "bold"
+  ) +
+  # Employee count labels at the bottom of the bars
+  geom_text(
+    aes(y = 0.1, label = paste0("n=", format(n_employees, big.mark = ","))),
+    vjust = 0,
+    size = 3,
+    color = "white",
+    fontface = "bold"
+  ) +
+  # Custom color scale for highlights
+  scale_fill_manual(values = c("top" = "#faca80", "normal" = "#151931")) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Moderate overtime (10-14h)<br> correlates with peak performance (3.01)</span>",
+    subtitle = "Employees working 25+ hours overtime show 0.02 lower scores than average",
+    x = "Monthly Overtime Hours", # Clearer x-axis label
+    y = "Average Performance Score (1-5)", # Clearer y-axis label
+    caption = paste("Performance scale: 1-5 | Company average:",
+                   round(mean(overtime_data_performance$avg_score), 2),
+                   "| Total employees analyzed:", format(sum(overtime_data_performance$n_employees), big.mark = ","))
+  ) +
+  # Apply consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.text.x = element_text(angle = 0, hjust = 0.5, size = 11, color = "#151931"),
+    axis.title.y = element_text(angle = 90, vjust = 0.5, hjust = 0.5, margin = margin(r = 10)),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    plot.margin = margin(20, 20, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+
+# Display the plot
+overtime_plot
+```
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+This analysis suggests that there is **no strong linear relationship or clear pattern indicating that overtime hours significantly improve or harm performance** in this dataset. This finding challenges the common assumption that more overtime necessarily leads to higher performance or, conversely, that excessive overtime leads to burnout and lower performance. It implies that for this dataset, performance is either driven by other factors not directly related to the amount of overtime, or the performance metric itself might not be sensitive enough to capture the nuanced effects of overtime.
+:::
+::::
+
+## III.3 COMPENSATION & EQUITY: Examining salary disparities
+
+::: {.callout-warning appearance="minimal" icon="false"}
+### ARE THERE SIGNIFICANT SALARY DISPARITIES ACROSS DEPARTMENTS?
+:::
+
+This analysis investigates whether there are notable differences in average monthly salaries across different departments within the company.
+
+```{r}
+
+# Prepare data with additional metrics for salary analysis by department
+salary_data_department <- df_employee %>% # Renamed variable
+  group_by(Department) %>%
+  summarise(
+    Avg_Salary = mean(Monthly_Salary, na.rm = TRUE),
+    Median_Salary = median(Monthly_Salary, na.rm = TRUE),
+    Employee_Count = n(),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(Avg_Salary)) %>% # Order by average salary
+  mutate(
+    Salary_Ratio = Avg_Salary/min(Avg_Salary), # Calculate ratio relative to lowest average salary
+    Highlight = case_when(
+      Avg_Salary == max(Avg_Salary) ~ "peak", # Highlight highest average salary
+      Avg_Salary == min(Avg_Salary) ~ "low", # Highlight lowest average salary
+      TRUE ~ "normal" # Default for others
+    )
+  )
+
+# Calculate reference metrics for the overall company
+company_avg_salary <- mean(salary_data_department$Avg_Salary)
+total_employees_salary_analysis <- sum(salary_data_department$Employee_Count)
+
+# Create visualization for average monthly salary by department
+salary_plot_department <- ggplot(salary_data_department, # Use the renamed data variable
+                     aes(x = reorder(Department, Avg_Salary), # Reorder departments by average salary
+                         y = Avg_Salary,
+                         fill = Highlight)) +
+
+  # Bars representing average salaries
+  geom_col(width = 1, color = "white", linewidth = 0.5) +
+
+  # Reference line for overall company average salary
+  geom_hline(yintercept = company_avg_salary,
+             color = "#666666",
+             linetype = "dashed",
+             linewidth = 1) +
+
+  # Salary labels on bars
+  geom_text(aes(label = dollar(round(Avg_Salary))),
+            vjust = -0.5,
+            size = 4,
+            fontface = "bold",
+            color = "#151931") +
+
+  # Employee count labels at the bottom of the bars
+  geom_text(aes(y = 1000,
+                label = paste0("n=",format(Employee_Count, big.mark = ","))),
+            color = "white",
+            size = 3.2,
+            vjust = 0,
+            fontface = "bold") +
+
+  # Custom color scheme for highlights
+  scale_fill_manual(values = c("peak" = "#faca80", "low" = "#e6554a", "normal" = "#151931")) +
+  scale_y_continuous(labels = dollar_format(),
+                     expand = expansion(mult = c(0, 0.20))) +
+
+  # Professional titles and captions
+  labs(
+    title = "<span style='font-size:18pt;color:#151931'>There are no significant salary disparities<br> across departments </span>",
+    subtitle = "The Median Salary for all departments is exactly the same: $6500",
+    x = NULL, # Remove x-axis label
+    y = "Average Monthly Salary (USD)",
+    caption = paste("Company average:", dollar(round(company_avg_salary)),
+                    "| Total employees analyzed:", format(total_employees_salary_analysis, big.mark = ","))
+  ) +
+
+  # theme with consistent styling
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 8)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 20)),
+    plot.caption = element_text(hjust = 1, color = "#666666", margin = margin(t = 15)),
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", color = "#151931"), # Rotate x-axis labels
+    axis.title.y = element_text(angle = 90, vjust = 0.5, color = "#151931"),
+    axis.text.y = element_text(color = "#151931"),
+    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.major.y = element_line(color = "#e0e0e0"),
+    panel.grid.minor = element_blank(),
+    legend.position = "none",
+    plot.margin = margin(25, 25, 25, 25),
+    plot.background = element_rect(fill = "white", color = NA)
+  )
+
+# Display the plot
+salary_plot_department
+
+```
+
+:::: column-margin
+::: {.callout-warning appearance="minimal" icon="false"}
+Based on these outputs, there are **no significant salary disparities across departments** in this dataset.
+
+-   The average salaries show only very minor fluctuations, and the identical median salaries across all departments strongly suggest that the typical employee's salary experience is consistent regardless of their department.
+-   This indicates a high degree of **salary equity** across the different departments within the organization. This could be due to a standardized pay scale, roles with similar compensation across departments, or a conscious effort by the organization to maintain internal pay equity.
+-   While minor statistical differences in the average might exist, they are not practically significant given the identical medians and highly similar distributions.
+:::
+::::
+
+------------------------------------------------------------------------
+
+::: {.callout-tip appearance="simple"}
+# EXECUTIVE SUMMARY: Key Insights from Employee Performance Analysis
+
+This report provides a comprehensive analysis of employee performance, retention, and compensation across various departments, drawing insights from a dataset of 100,000 employee records. The primary objective was to identify performance gaps, understand drivers of employee turnover, and assess compensation equity within the organization.
+
+**Key Findings:**
+
+-   **Overall Workforce Overview**: The dataset is robust and clean, with no missing values, providing a strong foundation for reliable analysis. The company experiences an **overall employee resignation rate of approximately 10%**.
+-   **Employee Retention & Turnover**:
+    -   Surprisingly, traditional demographic factors like **gender, education level, age, and even overall employee satisfaction scores do not appear to be strong individual predictors of resignation.** Turnover rates remain largely consistent across these groups. This suggests that the issues driving attrition might be more nuanced or external to these broad categories.
+    -   **Remote work frequency shows a subtle trend**: Employees working **fully in-office (0% remote) exhibit a marginally lower resignation rate** compared to those engaged in hybrid or fully remote work.
+    -   **Performance score has a counter-intuitive relationship**: Lower-performing employees are **not disproportionately more likely to leave**. In fact, turnover occurs across all performance levels, and the highest performers have the lowest, albeit slightly, resignation rate.
+    -   **Tenure is a critical predictor**: The **highest resignation risk is observed among employees with 10+ years of tenure**, with a significantly elevated resignation rate compared to other tenure groups. This suggests potential issues around career stagnation or new challenges for long-serving employees.
+-   **Performance & Productivity Drivers**:
+    -   A **modest positive correlation (r = 0.51) exists between Monthly Salary and Performance Score**, indicating that higher-earning employees tend to achieve slightly better performance ratings.
+    -   **Department and Education Level do not emerge as strong individual drivers of performance scores**, as average scores remain highly consistent across these categories.
+    -   **Overtime hours show no clear linear relationship with performance**. Moderate overtime (10-14 hours/month) correlates with peak performance, but excessive overtime (25+ hours/month) is associated with slightly lower scores, suggesting a point of diminishing returns.
+-   **Compensation & Equity**:
+    -   The analysis reveals **no significant salary disparities across departments**. Median salaries are identical across all departments, indicating a high degree of internal pay equity.
+
+**Conclusion**: While demographic and general satisfaction metrics do not singularly explain employee turnover, factors like long tenure and the nuanced impact of remote work warrant further investigation for retention strategies. The company demonstrates strong equity in salary distribution across departments and genders. Future efforts should focus on understanding the specific motivations for departure among long-tenured employees and optimizing remote work policies to maximize retention.
+:::
