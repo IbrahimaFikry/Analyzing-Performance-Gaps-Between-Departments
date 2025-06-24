@@ -311,31 +311,38 @@ dept_plot
 This histogram illustrates the distribution of monthly salaries across the employee base, highlighting the median salary.
 
 ```{r}
-
 # Load scales package for dollar formatting on axes
 library(scales)
 
-# Monthly Salary distribution plot
+# Add a column for bin group
+df_employee$Salary_Bin <- cut(df_employee$Monthly_Salary, breaks = seq(3500, 9500, by = 500), include.lowest = TRUE)
+
+# Count employees per bin
+bin_counts <- as.data.frame(table(df_employee$Salary_Bin))
+max_bin <- bin_counts$Salary_Bin[which.max(bin_counts$Freq)]
+
+# Add fill color based on whether the bin is the one with the highest count
 p_M_Salary <- ggplot(df_employee, aes(x = Monthly_Salary)) +
   geom_histogram(
-    binwidth = 500, # Bins of $500
-    fill = "#151931", # Dark blue fill
-    color = "white" # White border for bars
+    binwidth = 500,
+    aes(fill = ..x.. >= 6250 & ..x.. < 6750),  # Highlight $6,500 bin
+    color = "white"
   ) +
-  # Add count labels on top of each bar
+  scale_fill_manual(values = c("TRUE" = "#faca80", "FALSE" = "#151931"), guide = "none") +
+  
+  # Add count labels
   stat_bin(
     binwidth = 500,
     geom = "text",
     aes(label = after_stat(count)),
-    vjust = -0.5,  # Position above bars
+    vjust = -0.5,
     color = "#151931",
     size = 3.5,
     fontface = "bold"
   ) +
   labs(
     title = "Most Employees Earn $6K–7K/Month",
-    subtitle = paste("Median monthly salary: $", format(median(df_employee$Monthly_Salary), big.mark=","),
-                     " | n =", format(nrow(df_employee), big.mark=",")),
+    subtitle = paste("Median monthly salary: $", format(median(df_employee$Monthly_Salary), big.mark=","), " | n =", format(nrow(df_employee), big.mark=",")),
     x = "Monthly Salary (USD)",
     y = "Number of Employees",
     caption = "Source: Company HR Data"
@@ -344,31 +351,32 @@ p_M_Salary <- ggplot(df_employee, aes(x = Monthly_Salary)) +
   theme(
     plot.title = element_text(hjust = 0.5, face = "bold", size = 16, margin = margin(b = 10)),
     plot.subtitle = element_text(hjust = 0.5, color = "gray40", size = 12),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10), # Angle x-axis labels for readability
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
     axis.title.y = element_text(margin = margin(r = 10)),
-    panel.grid.major.x = element_blank(), # Remove major x grid lines
+    panel.grid.major.x = element_blank(),
     plot.caption = element_text(hjust = 0, margin = margin(t = 10)),
-    panel.grid.major = element_blank(), # Remove all major grid lines for cleaner look
-    panel.grid.minor = element_blank() # Remove all minor grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
   ) +
   scale_x_continuous(
-    labels = dollar_format(),  # Format as $10,000
-    breaks = seq(0, max(df_employee$Monthly_Salary), by = 500)  # Custom breaks for better readability
+    labels = dollar_format(),
+    breaks = seq(0, max(df_employee$Monthly_Salary), by = 500)
   ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) + # Expand y-axis to accommodate labels
-  # Add vertical line for median salary
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  
+  # Median line now in dark blue
   geom_vline(
     xintercept = median(df_employee$Monthly_Salary),
-    color = "#faca80", # Accent color for median line
+    color = "#151931",
     linetype = "dashed",
     linewidth = 1,
-    alpha = 0.8 # Slightly transparent
+    alpha = 0.5
   ) +
-  # Annotate median line directly on the plot
   annotate(
     "text",
-    x = median(df_employee$Monthly_Salary) * 1.1, # Position annotation slightly to the right of the line
-    y = max(ggplot_build(ggplot(df_employee, aes(x = Monthly_Salary)) + geom_histogram(binwidth = 500))$data[[1]]$count) * 0.9, # Dynamically adjust y-position
+    x = median(df_employee$Monthly_Salary) * 1.1,
+    y = max(ggplot_build(ggplot(df_employee, aes(x = Monthly_Salary)) +
+                           geom_histogram(binwidth = 500))$data[[1]]$count) * 0.9,
     label = paste("Median:", dollar(median(df_employee$Monthly_Salary))),
     color = "gray40",
     fontface = "bold",
@@ -472,8 +480,7 @@ Resign_plot <- ggplot(Resign_data, aes(x = Resigned, y = Count, fill = Resigned)
   # Titles and labels with markdown for highlighting
   labs(
     title = "<span style='font-size:18pt'>10% of employees resigned</span>",
-    subtitle = paste(format(Resign_data$Count[Resign_data$Resigned == "Resigned"], big.mark = ","),
-                    " employees", sep = ""),
+    subtitle = paste(format(Resign_data$Count[Resign_data$Resigned == "Resigned"], big.mark = ",")," employees |", sep = "", format(sum(edu_data$Count), big.mark = ","), " total employees"),
     x = NULL, # Remove x-axis label
     y = NULL, # Remove y-axis label
     caption = paste("Total employees:", format(sum(Resign_data$Count), big.mark = ","))
@@ -587,7 +594,7 @@ age_plot <- ggplot(df_employee, aes(x = Age)) +
   ) +
   # Add titles and captions with markdown support
   labs(
-    title = "<span style='font-size:18pt'>Employee Age distribution shows <span style='color:#151931'><br>key Workforce demographics</span></span>",
+    title = "<span style='font-size:18pt'>Employee Age distribution shows<br>key Workforce demographics</span></span>",
     subtitle = paste(
       "Precise 1-year bins |",
       format(age_stats$Total_Employees, big.mark = ","),
@@ -966,7 +973,7 @@ plot_salary <- ggplot(df_employee, aes(x = Resigned, y = Monthly_Salary, fill = 
   scale_y_continuous(labels = dollar_format()) +
   # Titles and labels with markdown
   labs(
-    title = "<span style='font-size:18pt'>Salary distribution doesn't show <span style='color:#151931'> <br>clear differences</span> by Resignation Status</span>",
+    title = "<span style='font-size:18pt'>Salary distribution doesn't show clear differences <br> by Resignation Status</span>",
     subtitle = paste("Median salary gap:", dollar(abs(diff(salary_stats$Median))), "between groups"),
     x = NULL, # Remove x-axis label
     y = "Monthly Salary",
@@ -1080,7 +1087,7 @@ plot_satisfaction <- ggplot(df_employee,
                      limits = c(0.5, 5.5)) + # Assuming 1-5 scale for satisfaction
   # Titles and labels with markdown
   labs(
-    title = "<span style='font-size:18pt'>Satisfaction scores show <br> <span style='color:#151931'>No apparent difference Gap</span> between Groups</span>",
+    title = "<span style='font-size:18pt'>Satisfaction scores show No apparent difference Gap <br> between Groups",
     subtitle = paste("Median satisfaction difference:",
                     round(abs(diff(satisfaction_stats$Median)), 1),
                     "points between resigned and active employees"),
@@ -1138,7 +1145,6 @@ This analysis investigates the relationship between the frequency of remote work
 
 ```{r}
 
-# Calculate resignation rates by Remote_Work_Frequency
 resignation_data_remote <- df_employee %>% # Renamed variable to avoid conflict
   group_by(Remote_Work_Frequency) %>%
   summarise(
@@ -1149,23 +1155,27 @@ resignation_data_remote <- df_employee %>% # Renamed variable to avoid conflict
   ) %>%
   arrange(desc(Resignation_Rate))
 
-# Create plot for remote work resignation rates
-remote_work_plot <- ggplot(resignation_data_remote, # Use the renamed data variable
-                          aes(x = fct_reorder(Remote_Work_Frequency, -Resignation_Rate),
+# Add highlight column to distinguish the highest bar
+resignation_data_remote <- resignation_data_remote %>%
+  mutate(Highlight = ifelse(Resignation_Rate == max(Resignation_Rate), "Highest", "Other"))
+
+# Create plot
+remote_work_plot <- ggplot(resignation_data_remote,
+                          aes(x = Remote_Work_Frequency,
                               y = Resignation_Rate,
-                              fill = Resignation_Rate)) +
+                              fill = Highlight)) +
   geom_col(width = 0.6) +
   geom_text(aes(label = sprintf("%.2f%%", Resignation_Rate)),
             vjust = -0.5, size = 4.5, fontface = "bold", color = "#151931") +
   geom_text(aes(y = 1, label = paste0("n=", format(Total_Employees, big.mark = ","))),
             size = 3.5, color = "white", vjust = 1.2, fontface = "bold") +
-  scale_fill_gradient(low = "#faca80", high = "#151931", guide = "none") +
+  scale_fill_manual(values = c("Highest" = "#faca80", "Other" = "#151931"), guide = "none") +
   labs(
-    title = "<span style='font-size:18pt'>Fully office-based staff show<span style='color:#151931'><br>highest attrition</span> (10.0%)</span>", # Updated title to reflect the finding
-    subtitle = "Resignation rates decline as remote work frequency increases",
-    x = "Remote Work Frequency (%)", # Clearer x-axis label
+    title = "<span style='font-size:18pt'>Partially remote staff (75% remote)<br>show highest attrition (10.28%)</span>", 
+    subtitle = "Lowest for fully office-based staff",
+    x = "Remote Work Frequency (%)",
     y = "Resignation Rate (%)",
-    caption = paste("Total employees analyzed:",format(sum(resignation_data_remote$Total_Employees), big.mark = ","))
+    caption = paste("Total employees analyzed:", format(sum(resignation_data_remote$Total_Employees), big.mark = ","))
   ) +
   theme_minimal(base_size = 12) +
   theme(
@@ -1183,6 +1193,7 @@ remote_work_plot <- ggplot(resignation_data_remote, # Use the renamed data varia
 
 # Display the plot
 remote_work_plot
+
 
 
 ```
@@ -1212,21 +1223,25 @@ performance_data_resignation <- df_employee %>% # Renamed variable to avoid conf
   ) %>%
   arrange(desc(Resignation_Rate))
 
-# Create plot for performance score and resignation rates
-performance_plot_resignation <- ggplot(performance_data_resignation, # Use the renamed data variable
-                         aes(x = fct_reorder(Performance_Score, -Resignation_Rate),
+# Identify the highest resignation rate and mark it
+performance_data_resignation <- performance_data_resignation %>%
+  mutate(Highlight = ifelse(Resignation_Rate == max(Resignation_Rate), "Highest", "Other"))
+
+# Plot
+performance_plot_resignation <- ggplot(performance_data_resignation,
+                         aes(x = Performance_Score,
                              y = Resignation_Rate,
-                             fill = Resignation_Rate)) +
+                             fill = Highlight)) +
   geom_col(width = 0.6) +
   geom_text(aes(label = sprintf("%.2f%%", Resignation_Rate)),
             vjust = -0.5, size = 4.5, fontface = "bold", color = "#151931") +
   geom_text(aes(y = 1, label = paste0("n=", format(Total_Employees, big.mark = ","))),
             size = 3.5, color = "white", vjust = 1.2, fontface = "bold") +
-  scale_fill_gradient(low = "#faca80", high = "#151931", guide = "none") +
+  scale_fill_manual(values = c("Highest" = "#faca80", "Other" = "#151931"), guide = "none") +
   labs(
-    title = "<span style='font-size:18pt'>Lower performers show <span style='color:#151931'>higher attrition</span> (10.2%)</span>", # Updated title
-    subtitle = "Resignation rates decrease as performance scores improve",
-    x = "Performance Score (1-5)", # Clearer x-axis label
+    title = "<span style='font-size:18pt'>There is no clear indication that lower-performing<br> employees are significantly more likely to leave</span>",
+    subtitle = "Employees with the highest score (5) have the lowest resignation rate",
+    x = "Performance Score (1 = Lowest, 5 = Highest)",
     y = "Resignation Rate (%)",
     caption = paste("Total employees analyzed:", format(sum(performance_data_resignation$Total_Employees), big.mark = ","))
   ) +
@@ -1246,6 +1261,7 @@ performance_plot_resignation <- ggplot(performance_data_resignation, # Use the r
 
 # Display the plot
 performance_plot_resignation
+
 ```
 
 :::: column-margin
@@ -1281,7 +1297,7 @@ resignation_by_tenure <- df_employee %>%
 
 # Create plot for tenure and resignation rates
 tenure_plot <- ggplot(resignation_by_tenure,
-                     aes(x = fct_reorder(tenure_bin, resignation_rate), # Order by resignation rate
+                     aes(x = tenure_bin, 
                          y = resignation_rate,
                          fill = resignation_rate)) +
   geom_col(width = 0.8) +
@@ -1301,8 +1317,8 @@ tenure_plot <- ggplot(resignation_by_tenure,
   ) +
   scale_fill_gradient(low = "#151931", high = "#faca80", guide = "none") + # Gradient fill
   labs(
-    title = "<span style='font-size:18pt'>Highest attrition (15.9%) among oldest employees<br> (0-1 year)</span>", 
-    subtitle = "Resignation rates decline with tenure, then rise again after 10+ years",
+    title = "<span style='font-size:18pt'>Highest attrition (15.9%) among oldest employees<br> (10+ years)</span>", 
+    subtitle = "Resignation rates generally increases with tenure",
     x = "Years at Company", 
     y = "Resignation Rate (%)",
     caption = paste("Total employees analyzed:", format(sum(resignation_by_tenure$total_employees), big.mark = ","))
@@ -1357,6 +1373,83 @@ This is a crucial insight!
 This section explores various factors that might influence employee performance scores, examining departmental performance, educational attainment, and the relationship between salary and performance.
 
 ::: panel-tabset
+## Performance score vs. Monthly Salary (Scatter plot with smooth line)
+
+This scatter plot visualizes the relationship between monthly salary and performance score, including a linear regression line to indicate the trend.
+
+```{r}
+
+# Ensure Performance_Score is numeric for correlation calculation and plotting
+df_employee <- df_employee %>% mutate(Performance_Score_Numeric = as.numeric(Performance_Score))
+
+# Calculate Pearson correlation coefficient and key statistics
+correlation <- cor(df_employee$Monthly_Salary, df_employee$Performance_Score_Numeric, use = "complete.obs")
+salary_stats_performance <- df_employee %>% # Renamed variable
+  summarise(
+    median_salary = median(Monthly_Salary),
+    avg_performance = mean(Performance_Score_Numeric, na.rm = TRUE)
+  )
+
+# Create enhanced scatter plot
+performance_salary_plot <- ggplot(df_employee,
+                                 aes(x = Monthly_Salary,
+                                     y = Performance_Score_Numeric)) +
+  # Add points, with slight transparency for overlapping points
+  geom_point(alpha = 0.5, color = "#151931") + # Dark blue points
+  # Add a linear regression line to show the trend
+  geom_smooth(method = "lm",
+              color = "#e55807",  # orange for the regression line
+              linewidth = 1.5,
+              se = FALSE) + # Do not show standard error band
+  # Add reference lines for median salary and average performance
+  geom_hline(yintercept = salary_stats_performance$avg_performance,
+             linetype = "dashed",
+             color = "#666666") +
+  geom_vline(xintercept = salary_stats_performance$median_salary,
+             linetype = "dashed",
+             color = "#666666") +
+  # Annotate the correlation coefficient on the plot
+  annotate("text",
+           x = max(df_employee$Monthly_Salary) * 0.95, # Position in top right corner
+           y = max(df_employee$Performance_Score_Numeric) * 0.95,
+           label = sprintf("r = %.2f", correlation),
+           color = "#151931",
+           size = 5,
+           fontface = "bold") +
+  # Set x-axis as currency and define breaks
+  scale_x_continuous(labels = dollar_format(),
+                     breaks = seq(4000, 9000, by = 1000)) +
+  # Set y-axis limits and breaks for performance scores
+  scale_y_continuous(limits = c(1, 5),
+                     breaks = 1:5) +
+  # Titles and labels with markdown
+  labs(
+    title = "<span style='font-size:18pt'>Modest positive correlation (r = 0.51) <br>between Salary and Performance</span>",
+    subtitle = "Higher salaries show slightly better Performance Scores on average",
+    x = "Monthly Salary (USD)", # Clearer x-axis label
+    y = "Performance Score (1-5)",
+    caption = paste("Total employees analyzed: n =", format(nrow(df_employee), big.mark = ","),
+                    "| Median salary:", dollar(salary_stats_performance$median_salary),
+                    "| Average performance:", round(salary_stats_performance$avg_performance, 2))
+  ) +
+  # Apply consistent minimal theme
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
+    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
+    axis.title = element_text(color = "#151931"),
+    axis.text = element_text(color = "#151931"),
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    legend.position = "none", # Hide legend
+    plot.margin = margin(20, 20, 20, 20),
+    plot.background = element_rect(fill = "white", color = NA)
+  )
+
+# Display the plot
+performance_salary_plot
+```
+
 ## Average Performance score by Department
 
 This bar chart illustrates the average performance score for each department, highlighting departments with the highest and lowest scores relative to the company average.
@@ -1431,7 +1524,7 @@ performance_plot_department <- ggplot(performance_data_department, # Use the ren
   # Titles and labels with markdown
   labs(
     title = "<span style='font-size:18pt'>Engineering leads Department Performance (3.02/5)</span>",
-    subtitle = "Marketing trails by -0.38 points from company average",
+    subtitle = "Marketing trails by -0.01 points from company average",
     x = NULL, # Remove x-axis label
     y = NULL, # Remove y-axis label
     caption = paste("Performance scale: 1-5 | Company average:",
@@ -1536,8 +1629,8 @@ edu_plot_performance <- ggplot(edu_performance, # Use the renamed data variable
   )) +
   # Titles and labels with markdown
   labs(
-    title = "<span style='font-size:18pt'>PhD holders outperform by +0.03 points</span>",
-    subtitle = "High school graduates trail company average by -0.02 points",
+    title = "<span style='font-size:18pt'>Master holders outperform by +0.02 points</span>",
+    subtitle = "Bachelor graduates trail company average by -0.01 points",
     x = NULL, # Remove x-axis label
     y = NULL, # Remove y-axis label
     caption = paste("Performance scale: 1-5 | Company average:",
@@ -1568,83 +1661,6 @@ edu_plot_performance <- ggplot(edu_performance, # Use the renamed data variable
 # Display the plot
 edu_plot_performance
 
-```
-
-## Performance score vs. Monthly Salary (Scatter plot with smooth line)
-
-This scatter plot visualizes the relationship between monthly salary and performance score, including a linear regression line to indicate the trend.
-
-```{r}
-
-# Ensure Performance_Score is numeric for correlation calculation and plotting
-df_employee <- df_employee %>% mutate(Performance_Score_Numeric = as.numeric(Performance_Score))
-
-# Calculate Pearson correlation coefficient and key statistics
-correlation <- cor(df_employee$Monthly_Salary, df_employee$Performance_Score_Numeric, use = "complete.obs")
-salary_stats_performance <- df_employee %>% # Renamed variable
-  summarise(
-    median_salary = median(Monthly_Salary),
-    avg_performance = mean(Performance_Score_Numeric, na.rm = TRUE)
-  )
-
-# Create enhanced scatter plot
-performance_salary_plot <- ggplot(df_employee,
-                                 aes(x = Monthly_Salary,
-                                     y = Performance_Score_Numeric)) +
-  # Add points, with slight transparency for overlapping points
-  geom_point(alpha = 0.5, color = "#151931") + # Dark blue points
-  # Add a linear regression line to show the trend
-  geom_smooth(method = "lm",
-              color = "#e55807",  # orange for the regression line
-              linewidth = 1.5,
-              se = FALSE) + # Do not show standard error band
-  # Add reference lines for median salary and average performance
-  geom_hline(yintercept = salary_stats_performance$avg_performance,
-             linetype = "dashed",
-             color = "#666666") +
-  geom_vline(xintercept = salary_stats_performance$median_salary,
-             linetype = "dashed",
-             color = "#666666") +
-  # Annotate the correlation coefficient on the plot
-  annotate("text",
-           x = max(df_employee$Monthly_Salary) * 0.95, # Position in top right corner
-           y = max(df_employee$Performance_Score_Numeric) * 0.95,
-           label = sprintf("r = %.2f", correlation),
-           color = "#151931",
-           size = 5,
-           fontface = "bold") +
-  # Set x-axis as currency and define breaks
-  scale_x_continuous(labels = dollar_format(),
-                     breaks = seq(4000, 9000, by = 1000)) +
-  # Set y-axis limits and breaks for performance scores
-  scale_y_continuous(limits = c(1, 5),
-                     breaks = 1:5) +
-  # Titles and labels with markdown
-  labs(
-    title = "<span style='font-size:18pt'>Modest positive correlation (r = 0.51) <br>between Salary and Performance</span>",
-    subtitle = "Higher salaries show slightly better Performance Scores on average",
-    x = "Monthly Salary (USD)", # Clearer x-axis label
-    y = "Performance Score (1-5)",
-    caption = paste("Total employees analyzed: n =", format(nrow(df_employee), big.mark = ","),
-                    "| Median salary:", dollar(salary_stats_performance$median_salary),
-                    "| Average performance:", round(salary_stats_performance$avg_performance, 2))
-  ) +
-  # Apply consistent minimal theme
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_markdown(hjust = 0.5, face = "bold", margin = margin(b = 5)),
-    plot.subtitle = element_text(hjust = 0.5, color = "gray40", margin = margin(b = 15)),
-    plot.caption = element_text(hjust = 0, color = "#666666", margin = margin(t = 10)),
-    axis.title = element_text(color = "#151931"),
-    axis.text = element_text(color = "#151931"),
-    panel.grid.minor = element_blank(), # Remove minor grid lines
-    legend.position = "none", # Hide legend
-    plot.margin = margin(20, 20, 20, 20),
-    plot.background = element_rect(fill = "white", color = NA)
-  )
-
-# Display the plot
-performance_salary_plot
 ```
 :::
 
@@ -1689,7 +1705,7 @@ overtime_data_performance <- df_employee %>% # Renamed variable
 
 # Create plot for overtime hours and average performance score
 overtime_plot <- ggplot(overtime_data_performance, # Use the renamed data variable
-                       aes(x = fct_reorder(Overtime_Bin, avg_score), # Reorder by average score
+                       aes(x = Overtime_Bin,
                            y = avg_score,
                            fill = highlight)) +
   geom_col(width = 0.7) +
@@ -1702,7 +1718,7 @@ overtime_plot <- ggplot(overtime_data_performance, # Use the renamed data variab
   ) +
   # Score labels on bars
   geom_text(
-    aes(label = sprintf("%.2f", avg_score)),
+    aes(label = sprintf("%.3f", avg_score)),
     vjust = -0.5,
     size = 4,
     fontface = "bold",
@@ -1730,8 +1746,7 @@ overtime_plot <- ggplot(overtime_data_performance, # Use the renamed data variab
   scale_fill_manual(values = c("top" = "#faca80", "normal" = "#151931")) +
   # Titles and labels with markdown
   labs(
-    title = "<span style='font-size:18pt'>Moderate overtime (10-14h)<br> correlates with peak performance (3.01)</span>",
-    subtitle = "Employees working 25+ hours overtime show 0.02 lower scores than average",
+    title = "<span style='font-size:18pt'>There is no strong linear relationship or clear pattern <br>indicating that overtime hours significantly <br>improve or harm performance</span>",
     x = "Monthly Overtime Hours", # Clearer x-axis label
     y = "Average Performance Score (1-5)", # Clearer y-axis label
     caption = paste("Performance scale: 1-5 | Company average:",
