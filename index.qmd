@@ -201,6 +201,10 @@ The variables are now appropriately typed in R, which facilitates effective anal
 
 A detailed summary of each variable type provides a foundational understanding of the employee population and key HR metrics.
 
+<details>
+
+<summary>Summary of the Dataframe</summary>
+
 ```{r}
 
 # Load the skimr package for a compact and visually appealing summary of data frames
@@ -210,6 +214,8 @@ library(skimr)
 skim(df_employee %>% select(-Employee_ID))
 
 ```
+
+</details>
 
 ::: {.callout-note appearance="minimal" icon="false"}
 **Key Observations from the Data Summary:**
